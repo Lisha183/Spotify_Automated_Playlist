@@ -339,7 +339,7 @@ playlists_frame = tk.Frame(main_frame, bg="black")
 playlists_list_frame = tk.Frame(playlists_frame, bg="black")
 playlists_list_frame.pack(fill="both", expand=True)
 
-# Input fields
+
 label_font = ("Helvetica", 12)
 entry_width = 30
 
@@ -347,11 +347,13 @@ tk.Label(form_frame, text="Genre:", bg="black", fg="white", font=label_font).pac
 genre_entry = tk.Entry(form_frame, width=entry_width)
 genre_entry.pack(pady=5)
 
-tk.Label(form_frame, text="Mood (0 to 1):", bg="black", fg="white", font=label_font).pack()
+tk.Label(form_frame, text="Mood (0.0 to 1.0):", bg="black", fg="white", font=label_font).pack()
+tk.Label(form_frame,text="Low (0.0): Sad or serious\nHigh (1.0): Cheerful or happy",bg="black",fg="lightgray",justify="left").pack()
 mood_entry = tk.Entry(form_frame, width=entry_width)
 mood_entry.pack(pady=5)
 
-tk.Label(form_frame, text="Energy (0 to 1):", bg="black", fg="white", font=label_font).pack()
+tk.Label(form_frame, text="Energy (0.0 to 1.0):", bg="black", fg="white", font=label_font).pack()
+tk.Label(form_frame,text="Low (0.0): Calm, mellow songs\nHigh (1.0): Intense, energetic tracks",bg="black",fg="lightgray",justify="left").pack()
 energy_entry = tk.Entry(form_frame, width=entry_width)
 energy_entry.pack(pady=5)
 

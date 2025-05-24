@@ -86,16 +86,32 @@ def save_playlist(playlist_name, track_ids, loading_label):
             writer.writerow([name, artists, url])
         print(f"Saved playlist to {filename}")
     loading_label.destroy()
+import threading
+import tkinter as tk
+import webbrowser
+from youtubesearchpython import VideosSearch
 
 def play_track_on_youtube(track_name, artists):
-    query = f"{track_name} {artists} audio"
-    videos_search = VideosSearch(query, limit=1)
-    result = videos_search.result()
-    if result['result']:
-        video_url = result['result'][0]['link']
-        webbrowser.open(video_url)
-    else:
-        print("No YouTube result found for:", query)
+    loading = tk.Toplevel(root)
+    loading.configure(bg="black")
+    loading_label = tk.Label(loading, text="Loading YouTube...", bg="black", fg="white", font=("Helvetica", 12))
+    loading_label.pack(padx=20, pady=20)
+    loading.update()
+
+    def search_and_play():
+        try:
+            query = f"{track_name} {artists} audio"
+            videos_search = VideosSearch(query, limit=1)
+            result = videos_search.result()
+            if result['result']:
+                video_url = result['result'][0]['link']
+                webbrowser.open(video_url)
+            else:
+                print("No YouTube result found for:", query)
+        finally:
+            loading.destroy()
+
+    threading.Thread(target=search_and_play).start()
 
 def clear_frame(frame):
     for widget in frame.winfo_children():
@@ -174,7 +190,7 @@ def generate_playlist():
 def play_first_song():
     genre = genre_entry.get()
 
-    loading_label = tk.Label(form_frame, text="Loading...", bg="black", fg="white", font=("Helvetica", 10))
+    loading_label = tk.Label(form_frame, text="Loading...", bg="black", fg="white", font=("Helvetica", 15))
     loading_label.pack(pady=5)
     root.update()
 
@@ -258,42 +274,49 @@ def show_songs(playlist_id, playlist_name):
     songs_frame.pack(fill="both", expand=True)
     clear_frame(songs_frame)
 
-    loading_label = tk.Label(songs_frame, text="Loading songs...", bg="black", fg="white", font=("Helvetica", 10))
+    loading_label = tk.Label(songs_frame, text="Loading songs...", bg="black", fg="white", font=("Helvetica", 15))
     loading_label.pack(pady=10)
     root.update()
 
     def fetch_songs():
         tracks = sp.playlist_tracks(playlist_id)['items']
 
-        title = tk.Label(songs_frame, text=f"Playlist: {playlist_name}", bg="black", fg="white", font=("Helvetica", 14))
-        title.pack(pady=10)
+        def update_ui():
+            loading_label.destroy()
 
-        for item in tracks:
-            track = item['track']
-            name = track['name']
-            artists = ", ".join([artist['name'] for artist in track['artists']])
-            album_img_url = track['album']['images'][1]['url']
+            title = tk.Label(songs_frame, text=f"Playlist: {playlist_name}", bg="black", fg="white", font=("Helvetica", 19))
+            title.pack(pady=10)
 
-            response = requests.get(album_img_url)
-            try:
-                img_data = Image.open(BytesIO(response.content)).resize((60, 60))
-                img = ImageTk.PhotoImage(img_data)
-            except Exception as e:
-                print(f"Error loading image for {name}: {e}")
-                img = ImageTk.PhotoImage(Image.new("RGB", (60, 60), color="black"))
+            for item in tracks:
+                track = item['track']
+                name = track['name']
+                artists = ", ".join([artist['name'] for artist in track['artists']])
+                album_img_url = track['album']['images'][1]['url'] if track['album']['images'] else None
 
-            container = tk.Frame(songs_frame, bg="black")
-            container.pack(fill="x", pady=5, padx=10)
-            container.bind("<Button-1>", lambda event, t_name=name, t_artists=artists: play_track_on_youtube(t_name, t_artists))
-            container.config(cursor="hand2")
+                if album_img_url:
+                    try:
+                        response = requests.get(album_img_url)
+                        img_data = Image.open(BytesIO(response.content)).resize((60, 60))
+                        img = ImageTk.PhotoImage(img_data)
+                    except Exception as e:
+                        print(f"Error loading image for {name}: {e}")
+                        img = ImageTk.PhotoImage(Image.new("RGB", (60, 60), color="black"))
+                else:
+                    img = ImageTk.PhotoImage(Image.new("RGB", (60, 60), color="black"))
 
-            img_label = tk.Label(container, image=img, bg="black")
-            img_label.image = img
-            img_label.pack(side="left")
+                container = tk.Frame(songs_frame, bg="black")
+                container.pack(fill="x", pady=5, padx=10)
+                container.bind("<Button-1>", lambda event, t_name=name, t_artists=artists: play_track_on_youtube(t_name, t_artists))
+                container.config(cursor="hand2")
 
-            text_label = tk.Label(container, text=f"{name} - {artists}", fg="white", bg="black", font=("Helvetica", 10))
-            text_label.pack(side="left", padx=10)
-        loading_label.destroy()
+                img_label = tk.Label(container, image=img, bg="black")
+                img_label.image = img  # keep reference
+                img_label.pack(side="left")
+
+                text_label = tk.Label(container, text=f"{name} - {artists}", fg="white", bg="black", font=("Helvetica", 15))
+                text_label.pack(side="left", padx=10)
+
+        root.after(0, update_ui)
 
     threading.Thread(target=fetch_songs).start()
 
